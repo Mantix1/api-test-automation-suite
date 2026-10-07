@@ -10,7 +10,7 @@ def _require(name: str) -> str:
     value = os.getenv(name)
     if not value or value == PLACEHOLDER_KEY:
         raise RuntimeError(
-            f"Missing enviroment variables {name}. "
+            f"Missing enviroment variable {name}. "
             "Copy .env.example to .env and fill it in."
         )
     return value
