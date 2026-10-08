@@ -23,5 +23,3 @@ def test_current_weather_by_coordinates(api_client):
     assert body["coord"]["lon"] == pytest.approx(-0.1278, abs=0.1)
     assert body["sys"]["country"] == "GB"
     assert -60 <= body["main"]["temp"] <= 60
-    
-    
