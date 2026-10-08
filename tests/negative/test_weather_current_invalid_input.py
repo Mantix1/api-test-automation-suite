@@ -47,3 +47,29 @@ def test_current_weather_malformed_encoding(api_client):
     assert 400 <= response.status_code < 500
     body = response.json()
     assert "message" in body
+
+
+FALLS_BACK_TO_LONDON = pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="Upstream #1: invalid lat with lon=0 returns 200 for (51.5, 0) unless units is set",
+)
+
+
+@pytest.mark.negative
+@pytest.mark.tc("TC-NEG-08")
+@pytest.mark.parametrize(
+    "params, expected_message",
+    [
+        pytest.param({"lat": "abc", "lon": 0}, "wrong latitude", id="non_numeric_lat", marks=FALLS_BACK_TO_LONDON),
+        pytest.param({"lat": "12,3", "lon": 0}, "wrong latitude", id="comma_decimal_lat", marks=FALLS_BACK_TO_LONDON),
+        pytest.param({"lat": "", "lon": 0}, "wrong latitude", id="empty_lat", marks=FALLS_BACK_TO_LONDON),
+        pytest.param({"lat": "abc", "lon": 0, "units": "metric"}, "wrong latitude", id="non_numeric_lat_with_units"),
+    ],
+)
+def test_current_weather_invalid_latitude_at_zero_longitude(api_client, params, expected_message):
+    response = api_client.get_current_weather(**params)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["message"] == expected_message
