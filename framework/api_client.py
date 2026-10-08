@@ -33,3 +33,11 @@ class OpenWeatherClient:
 
     def geocode_direct(self, **params) -> requests.Response:
         return self.get(endpoints.GEOCODING_DIRECT, params)
+
+    def get_raw_query(self, url: str, raw_query: str) -> requests.Response:
+        """Send a GET with raw_query appended exactly as given, without re-encoding."""
+        request = requests.Request("GET", url, params={"appid": self.api_key})
+        prepared = self.session.prepare_request(request)
+        prepared.url = f"{prepared.url}&{raw_query}"
+        return self.session.send(prepared, timeout=config.TIMEOUT_SECONDS)
+    
