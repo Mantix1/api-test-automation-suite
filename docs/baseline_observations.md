@@ -26,18 +26,29 @@ Times: rows 1–9 and 11 were measured in Postman (web). Rows 8b, 10 and 12–15
 | 14 | GET /direct?q=Paris,FR&limit=1 | 200 | 128 | Body is an ARRAY with 1 object: name=Paris, lat, lon, country=FR, plus `local_names` (geocode) |
 | 15 | GET /direct?q= | 400 | 101 | cod="400" (STRING), message="Nothing to geocode": same error format as /weather #6 (geocode empty q) |
 
-## Findings to follow up (Phase 9)
+## Findings
 
-- **`cod` type is inconsistent:** number on /weather success (200) and 401, string on 400/404 errors and on /forecast success ("200"). The 401 number appears on all three endpoints, including /geo/1.0/direct. TC-CON-04 (401 cases marked `xfail`).
-- **`mode=xml` also changes the error format:** an unknown city with `mode=xml` returns 404 as `<Error><cod>404</cod><message>city not found</message></Error>` with `application/xml`. Consistent, but undocumented. Observation (TC-CON-05).
-- **Unsupported methods are accepted:** POST /weather returns 200 instead of 405. PUT, DELETE and PATCH correctly return 405. Candidate for TC-NEG-07 (marked `xfail`).
-- **405 responses lack an `Allow` header and say "Internal error":** PUT/DELETE/PATCH return `{"cod":"405","message":"Internal error"}` with no `Allow` header (RFC 9110 requires one). Doc mismatch / Observation.
-- **Invalid `cnt` is silently corrected:** `cnt=0`, `cnt=-1` and `cnt=41` return 40 items instead of an error (`cnt=abc` correctly returns 400 "abc is not a number"). TC-BND-06 (marked `xfail`).
-- **Coordinate validation depends on `units`:** `lat=90.0001` / `lat=-90.0001` / `lon=±180.0001` return 200 (coord clamped to the limit) when `units` is omitted, but 400 "wrong latitude/longitude" when any `units` value is sent. Values from about 0.01 past the limit (e.g. `90.01`) are rejected either way. Defect (inconsistent validation). TC-BND-02 (marked `xfail`).
-- **Edge coordinates have an empty `name`:** poles and ±180 return `name: ""`; only `0,0` returns "Globe". Observation (TC-BND-01).
-- **Whitespace-only `q` returns 404, empty `q` returns 400:** `q=" "` gives "city not found", `q=""` gives "Nothing to geocode". Observation (TC-BND-03).
-- **Unicode `q` works, but CJK needs a country code:** "São Paulo,BR", "Москва,RU" and "東京,JP" all resolve (names returned in English, accents kept); bare "東京" returns 404. Observation (TC-BND-04).
-- **Long and special-character `q` is handled cleanly:** 1000 chars, symbols, HTML and SQL-like strings all return a JSON 404 "city not found", never a 5xx. (TC-BND-05)
-- **Unknown query params are silently ignored** (e.g. `lad`). Observation, not a defect.
-- **The key is also accepted in an `x-api-key` header:** `GET /weather?q=London,GB` with `x-api-key: <key>` and no `appid` returns 200. Not in the docs (which only show `appid`). The Postman collection uses it so the key stays out of URLs and Newman reports. Doc mismatch.
-- **Malformed percent-encoding is not rejected:** raw `q=%ZZ` returns 404 "city not found" instead of 400 Bad Request. Observation. (TC-NEG-06)
+Defects and doc mismatches are filed as GitHub Issues labeled `upstream` (Phase 9, last verified 2026-10-08). Each `xfail` reason in the tests names its issue, and `strict=True` makes the suite fail if the API is fixed, which is the signal to close the issue.
+
+| # | Finding | Type | Severity | Test |
+|---|---|---|---|---|
+| [#1](https://github.com/Mantix1/api-test-automation-suite/issues/1) | Invalid or empty `lat` with `lon=0` returns 200 for (51.5, 0) "Poplar"; any `units` value makes it a correct 400 | Defect | High | TC-NEG-08 (xfail) |
+| [#2](https://github.com/Mantix1/api-test-automation-suite/issues/2) | `±90.0001` / `±180.0001` return 200 (clamped) without `units`, 400 with `units`; `±90.01` always 400 | Defect | Medium | TC-BND-02 (xfail) |
+| [#3](https://github.com/Mantix1/api-test-automation-suite/issues/3) | POST `/weather` returns 200; PUT/DELETE/PATCH correctly return 405 | Defect | Medium | TC-NEG-07 (xfail) |
+| [#4](https://github.com/Mantix1/api-test-automation-suite/issues/4) | 405 responses have no `Allow` header (RFC 9110) and say "Internal error" | Defect | Low | none (manual) |
+| [#5](https://github.com/Mantix1/api-test-automation-suite/issues/5) | `/forecast` `cnt=0`, `-1`, `41` return 200 with 40 entries; `cnt=abc` correctly 400 | Defect | Medium | TC-BND-06 (xfail) |
+| [#6](https://github.com/Mantix1/api-test-automation-suite/issues/6) | `/direct` `limit=0` returns 10 results (docs: max 5); `limit=-1` returns 404 "not found" | Defect | Medium | TC-BND-07 (xfail) |
+| [#7](https://github.com/Mantix1/api-test-automation-suite/issues/7) | `cod` is a number on `/weather` 200 and on 401 (all endpoints), a string on 400/404 and on `/forecast` 200 | Doc mismatch | Low | TC-CON-04 (xfail), schemas |
+| [#8](https://github.com/Mantix1/api-test-automation-suite/issues/8) | Key accepted in an undocumented `x-api-key` header (the Postman collection uses it to keep the key out of URLs) | Doc mismatch | Low | none (Postman relies on it) |
+
+### Observations (not filed)
+
+- **Raw `q=%ZZ`** (malformed percent-encoding) returns 404 "city not found", not 400. (TC-NEG-06)
+- **`mode=xml` errors are XML:** an unknown city returns `<Error><cod>404</cod><message>city not found</message></Error>` with `application/xml`. (TC-CON-05)
+- **Edge coordinates have an empty `name`:** poles and ±180 return `name: ""`; `0,0` returns "Globe" with no `sys.country`. (TC-BND-01)
+- **Whitespace-only `q`** returns 404 "city not found"; empty `q` returns 400 "Nothing to geocode". (TC-BND-03)
+- **Unicode `q` works** ("São Paulo,BR", "Москва,RU", "東京,JP"; names in English, accents kept), but bare "東京" returns 404. (TC-BND-04)
+- **Long and special-character `q`** (1000 chars, symbols, HTML, SQL-like) always gets a JSON 404, never a 5xx. (TC-BND-05)
+- **`/direct` `limit=6`** is capped to 5 results, which matches the docs. (TC-BND-07)
+- **Unknown or invalid values are silently ignored:** unknown params (`lad`), `units=kelvin` / `units=xyz` (treated as `standard`), `lang=zz` (English), `mode=bogus` (JSON). Found in the Phase 9 bug hunt.
+- **`cnt=2.5`** returns 400 "2.5 is not a number" (correct status, slightly misleading message: it is a number, just not an integer).
