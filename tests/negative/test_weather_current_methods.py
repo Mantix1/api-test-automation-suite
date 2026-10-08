@@ -13,7 +13,7 @@ from framework import endpoints
             marks=pytest.mark.xfail(
                 strict=True,
                 raises=AssertionError,
-                reason="Upstream: POST /weather returns 200 instead of 405",
+                reason="Upstream #3: POST /weather returns 200 instead of 405",
             ),
         ),
         "PUT",

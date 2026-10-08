@@ -3,7 +3,7 @@ import pytest
 SILENTLY_CORRECTS_CNT = pytest.mark.xfail(
     strict=True,
     raises=AssertionError,
-    reason="Upstream: out-of-range cnt returns 200 with 40 items instead of 400",
+    reason="Upstream #5: out-of-range cnt returns 200 with 40 items instead of 400",
 )
 
 

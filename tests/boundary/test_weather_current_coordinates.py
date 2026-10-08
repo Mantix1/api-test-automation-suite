@@ -3,7 +3,7 @@ import pytest
 ACCEPTS_TINY_OVERFLOW = pytest.mark.xfail(
     strict=True,
     raises=AssertionError,
-    reason="Upstream: values just past the limit return 200 unless units is set",
+    reason="Upstream #2: values just past the limit return 200 unless units is set",
 )
 
 

@@ -5,7 +5,7 @@ from framework.schemas import assert_matches_schema
 COD_IS_A_NUMBER = pytest.mark.xfail(
     strict=True,
     raises=AssertionError,
-    reason="Upstream: 401 errors send cod as a number; other errors send a string",
+    reason="Upstream #7: 401 errors send cod as a number; other errors send a string",
 )
 
 
