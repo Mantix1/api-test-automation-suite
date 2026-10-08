@@ -10,5 +10,8 @@ __pycache__/
 # Generate test reports
 reports/
 
+# Node (Newman)
+node_modules/
+
 # Local AI assistant notes
 CLAUDE.md

@@ -1,0 +1,9 @@
+{
+  "name": "api-test-automation-suite",
+  "private": true,
+  "description": "Newman runner for the Postman collection in postman/",
+  "devDependencies": {
+    "newman": "6.2.2",
+    "newman-reporter-htmlextra": "1.23.1"
+  }
+}
