@@ -39,4 +39,5 @@ Times: rows 1–9 and 11 were measured in Postman (web). Rows 8b, 10 and 12–15
 - **Unicode `q` works, but CJK needs a country code:** "São Paulo,BR", "Москва,RU" and "東京,JP" all resolve (names returned in English, accents kept); bare "東京" returns 404. Observation (TC-BND-04).
 - **Long and special-character `q` is handled cleanly:** 1000 chars, symbols, HTML and SQL-like strings all return a JSON 404 "city not found", never a 5xx. (TC-BND-05)
 - **Unknown query params are silently ignored** (e.g. `lad`). Observation, not a defect.
+- **The key is also accepted in an `x-api-key` header:** `GET /weather?q=London,GB` with `x-api-key: <key>` and no `appid` returns 200. Not in the docs (which only show `appid`). The Postman collection uses it so the key stays out of URLs and Newman reports. Doc mismatch.
 - **Malformed percent-encoding is not rejected:** raw `q=%ZZ` returns 404 "city not found" instead of 400 Bad Request. Observation. (TC-NEG-06)
