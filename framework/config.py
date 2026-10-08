@@ -1,19 +1,22 @@
 """Loads settings from environment variables (and from .env when running locally)."""
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 PLACEHOLDER_KEY = "your_api_key_here"
 
+
 def _require(name: str) -> str:
     value = os.getenv(name)
     if not value or value == PLACEHOLDER_KEY:
         raise RuntimeError(
-            f"Missing enviroment variable {name}. "
+            f"Missing environment variable {name}. "
             "Copy .env.example to .env and fill it in."
         )
     return value
+
 
 API_KEY = _require("OWM_API_KEY")
 BASE_URL = _require("OWM_BASE_URL")
