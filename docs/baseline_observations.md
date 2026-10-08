@@ -29,7 +29,8 @@ Times: rows 1–9 and 11 were measured in Postman (web). Rows 8b, 10 and 12–15
 ## Findings to follow up (Phase 9)
 
 - **`cod` type is inconsistent:** number on /weather success (200) and 401, string on 400/404 errors and on /forecast success ("200"). Candidate for TC-CON-04.
-- **Unsupported methods are accepted:** POST /weather returns 200 instead of 405. Candidate for TC-NEG-07.
+- **Unsupported methods are accepted:** POST /weather returns 200 instead of 405. PUT, DELETE and PATCH correctly return 405. Candidate for TC-NEG-07 (marked `xfail`).
+- **405 responses lack an `Allow` header and say "Internal error":** PUT/DELETE/PATCH return `{"cod":"405","message":"Internal error"}` with no `Allow` header (RFC 9110 requires one). Doc mismatch / Observation.
 - **Invalid `cnt` is silently corrected:** `cnt=0` and `cnt=41` return 40 items instead of an error. Candidate for TC-BND-06.
 - **Unknown query params are silently ignored** (e.g. `lad`). Observation, not a defect.
 - **Malformed percent-encoding is not rejected:** raw `q=%ZZ` returns 404 "city not found" instead of 400 Bad Request. Observation. (TC-NEG-06)
