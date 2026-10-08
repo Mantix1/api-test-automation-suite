@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "geocoding_direct.json",
+  "title": "GET /geo/1.0/direct (200)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "lat", "lon", "country"],
+    "properties": {
+      "name": {"type": "string", "minLength": 1},
+      "local_names": {
+        "type": "object",
+        "additionalProperties": {"type": "string"}
+      },
+      "lat": {"type": "number", "minimum": -90, "maximum": 90},
+      "lon": {"type": "number", "minimum": -180, "maximum": 180},
+      "country": {"type": "string", "pattern": "^[A-Z]{2}$"},
+      "state": {"type": "string"}
+    }
+  }
+}

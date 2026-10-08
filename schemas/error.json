@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "error.json",
+  "title": "Error body shared by all three endpoints (4xx)",
+  "description": "cod is a string, as on most errors; 401 responses send a number instead (see TC-CON-04).",
+  "type": "object",
+  "required": ["cod", "message"],
+  "properties": {
+    "cod": {"type": "string", "pattern": "^[0-9]{3}$"},
+    "message": {"type": "string", "minLength": 1}
+  }
+}
