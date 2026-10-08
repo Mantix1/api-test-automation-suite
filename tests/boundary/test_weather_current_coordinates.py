@@ -1,5 +1,11 @@
 import pytest
 
+ACCEPTS_TINY_OVERFLOW = pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="Upstream: values just past the limit return 200 unless units is set",
+)
+
 
 @pytest.mark.boundary
 @pytest.mark.tc("TC-BND-01")
@@ -23,3 +29,51 @@ def test_current_weather_accepts_coordinate_edges(api_client, lat, lon):
     assert body["coord"]["lat"] == pytest.approx(lat)
     assert body["coord"]["lon"] == pytest.approx(lon)
     assert isinstance(body["name"], str)
+
+
+@pytest.mark.boundary
+@pytest.mark.tc("TC-BND-02")
+@pytest.mark.parametrize(
+    "params, expected_message",
+    [
+        pytest.param({"lat": 90.01, "lon": 0}, "wrong latitude", id="lat_above_max"),
+        pytest.param({"lat": -90.01, "lon": 0}, "wrong latitude", id="lat_below_min"),
+        pytest.param({"lat": 0, "lon": 180.01}, "wrong longitude", id="lon_above_max"),
+        pytest.param({"lat": 0, "lon": -180.01}, "wrong longitude", id="lon_below_min"),
+        pytest.param(
+            {"lat": 90.0001, "lon": 0, "units": "metric"},
+            "wrong latitude",
+            id="lat_tiny_overflow_with_units",
+        ),
+        pytest.param(
+            {"lat": 90.0001, "lon": 0},
+            "wrong latitude",
+            id="lat_tiny_overflow",
+            marks=ACCEPTS_TINY_OVERFLOW,
+        ),
+        pytest.param(
+            {"lat": -90.0001, "lon": 0},
+            "wrong latitude",
+            id="lat_tiny_underflow",
+            marks=ACCEPTS_TINY_OVERFLOW,
+        ),
+        pytest.param(
+            {"lat": 0, "lon": 180.0001},
+            "wrong longitude",
+            id="lon_tiny_overflow",
+            marks=ACCEPTS_TINY_OVERFLOW,
+        ),
+        pytest.param(
+            {"lat": 0, "lon": -180.0001},
+            "wrong longitude",
+            id="lon_tiny_underflow",
+            marks=ACCEPTS_TINY_OVERFLOW,
+        ),
+    ],
+)
+def test_current_weather_rejects_out_of_range_coordinates(api_client, params, expected_message):
+    response = api_client.get_current_weather(**params)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["message"] == expected_message
