@@ -9,3 +9,6 @@ __pycache__/
 
 # Generate test reports
 reports/
+
+# Local AI assistant notes
+CLAUDE.md
