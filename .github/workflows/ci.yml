@@ -1,0 +1,104 @@
+# Fast checks on every push and pull request to main:
+# the pytest regression subset (P1 cases) and the Newman Smoke folder.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+  OWM_BASE_URL: https://api.openweathermap.org/data/2.5
+  OWM_GEO_BASE_URL: https://api.openweathermap.org/geo/1.0
+
+jobs:
+  pytest-regression:
+    name: pytest (regression)
+    # Pull requests from forks get no secrets, so skip them instead of failing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run regression subset
+        run: >-
+          pytest -m regression
+          --html=reports/pytest-regression.html --self-contained-html
+          --junitxml=reports/pytest-regression-junit.xml
+
+      - name: Mask API key in reports
+        id: scrub
+        if: ${{ !cancelled() }}
+        run: python -m framework.scrub_reports
+
+      - name: Upload reports
+        if: ${{ !cancelled() && steps.scrub.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-regression-reports
+          path: reports/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  newman-smoke:
+    name: Newman (Smoke)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install Newman
+        run: npm ci
+
+      - name: Check the Postman collection matches the builder and schemas
+        run: python -m postman.build_collection --check
+
+      - name: Run Smoke folder
+        run: python -m postman.run_newman --folder Smoke
+
+      - name: Mask API key in reports
+        id: scrub
+        if: ${{ !cancelled() }}
+        run: python -m framework.scrub_reports
+
+      - name: Upload reports
+        if: ${{ !cancelled() && steps.scrub.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: newman-smoke-reports
+          path: reports/
+          retention-days: 14
+          if-no-files-found: ignore

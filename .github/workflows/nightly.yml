@@ -1,0 +1,96 @@
+# Everything, once a day: the full pytest suite (including the ~60 s
+# performance test) and every Newman folder. Run by hand from the Actions tab
+# with "Run workflow".
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 03:00 UTC daily; GitHub may start it a few minutes late
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+  OWM_BASE_URL: https://api.openweathermap.org/data/2.5
+  OWM_GEO_BASE_URL: https://api.openweathermap.org/geo/1.0
+
+jobs:
+  pytest-full:
+    name: pytest (full suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run full suite
+        run: >-
+          pytest
+          --html=reports/pytest-full.html --self-contained-html
+          --junitxml=reports/pytest-full-junit.xml
+
+      - name: Mask API key in reports
+        id: scrub
+        if: ${{ !cancelled() }}
+        run: python -m framework.scrub_reports
+
+      - name: Upload reports
+        if: ${{ !cancelled() && steps.scrub.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-full-reports
+          path: reports/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  newman-all:
+    name: Newman (all folders)
+    # Run after pytest, not alongside it, to stay under 60 calls/min.
+    needs: pytest-full
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install Newman
+        run: npm ci
+
+      - name: Run all folders
+        run: python -m postman.run_newman
+
+      - name: Mask API key in reports
+        id: scrub
+        if: ${{ !cancelled() }}
+        run: python -m framework.scrub_reports
+
+      - name: Upload reports
+        if: ${{ !cancelled() && steps.scrub.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: newman-all-reports
+          path: reports/
+          retention-days: 30
+          if-no-files-found: ignore
