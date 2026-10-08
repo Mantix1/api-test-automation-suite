@@ -28,7 +28,8 @@ Times: rows 1–9 and 11 were measured in Postman (web). Rows 8b, 10 and 12–15
 
 ## Findings to follow up (Phase 9)
 
-- **`cod` type is inconsistent:** number on /weather success (200) and 401, string on 400/404 errors and on /forecast success ("200"). Candidate for TC-CON-04.
+- **`cod` type is inconsistent:** number on /weather success (200) and 401, string on 400/404 errors and on /forecast success ("200"). The 401 number appears on all three endpoints, including /geo/1.0/direct. TC-CON-04 (401 cases marked `xfail`).
+- **`mode=xml` also changes the error format:** an unknown city with `mode=xml` returns 404 as `<Error><cod>404</cod><message>city not found</message></Error>` with `application/xml`. Consistent, but undocumented. Observation (TC-CON-05).
 - **Unsupported methods are accepted:** POST /weather returns 200 instead of 405. PUT, DELETE and PATCH correctly return 405. Candidate for TC-NEG-07 (marked `xfail`).
 - **405 responses lack an `Allow` header and say "Internal error":** PUT/DELETE/PATCH return `{"cod":"405","message":"Internal error"}` with no `Allow` header (RFC 9110 requires one). Doc mismatch / Observation.
 - **Invalid `cnt` is silently corrected:** `cnt=0`, `cnt=-1` and `cnt=41` return 40 items instead of an error (`cnt=abc` correctly returns 400 "abc is not a number"). TC-BND-06 (marked `xfail`).
