@@ -40,4 +40,9 @@ class OpenWeatherClient:
         prepared = self.session.prepare_request(request)
         prepared.url = f"{prepared.url}&{raw_query}"
         return self.session.send(prepared, timeout=config.TIMEOUT_SECONDS)
-    
+
+    def send(self, method: str, url: str, params: dict | None = None) -> requests.Response:
+        """Send any HTTP method with the API key; used for unsupported-method tests."""
+        params = dict(params or {})
+        params.setdefault("appid", self.api_key)
+        return self.session.request(method, url, params=params, timeout=config.TIMEOUT_SECONDS)
