@@ -1,5 +1,7 @@
 import pytest
 
+from framework import endpoints
+
 
 @pytest.mark.negative
 @pytest.mark.regression
@@ -33,3 +35,15 @@ def test_current_weather_non_numeric_latitude(api_client):
     body = response.json()
     assert "wrong latitude" in body["message"]
     assert str(body["cod"]) == "400"
+
+
+@pytest.mark.negative
+@pytest.mark.tc("TC-NEG-06")
+def test_current_weather_malformed_encoding(api_client):
+    response = api_client.get_raw_query(endpoints.CURRENT_WEATHER, "q=%ZZ")
+
+    sent_raw = response.request.url.endswith("&q=%ZZ")
+    assert sent_raw, "query was re-encoded; the test did not send malformed input"
+    assert 400 <= response.status_code < 500
+    body = response.json()
+    assert "message" in body
